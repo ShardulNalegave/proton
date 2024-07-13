@@ -18,6 +18,7 @@ pub const TokenKind = enum {
     Identifier,
     Number,
     String,
+    Character,
 
     Let,
     Const,
@@ -28,6 +29,9 @@ pub const TokenKind = enum {
     For,
     Enum,
     Struct,
+    True,
+    False,
+    Return,
 
     Semicolon, // ;
     Dot, // .
@@ -39,7 +43,9 @@ pub const TokenKind = enum {
     FloorDivide, // //
     Assign, // =
     Equals, // ==
+    LessThan, // <
     LessThanEqualTo, // <=
+    GreaterThan, // >
     GreaterThanEqualTo, // >=
 
     And, // &&

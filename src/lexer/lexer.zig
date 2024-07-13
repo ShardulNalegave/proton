@@ -1,4 +1,9 @@
+const std = @import("std");
 const tokens = @import("tokens.zig");
+
+pub const LexerError = error{
+    InvalidToken,
+};
 
 pub const Lexer = struct {
     source: []const u8,
@@ -15,19 +20,19 @@ pub const Lexer = struct {
         };
     }
 
-    pub fn peek(self: *Lexer) !u8 {
-        if (self.pos >= self.source.len) return error.EOF;
+    pub fn peek(self: *Lexer) ?u8 {
+        if (self.pos >= self.source.len) return null;
         return self.source[self.pos];
     }
 
-    pub fn advance(self: *Lexer) !u8 {
-        if (self.pos >= self.source.len) return error.EOF;
+    pub fn advance(self: *Lexer) ?u8 {
+        if (self.pos >= self.source.len) return null;
         const c = self.source[self.pos];
         self.pos += 1;
         return c;
     }
 
-    fn make_token(self: *Lexer, kind: tokens.TokenKind, literal: []const u8) tokens.Token {
+    fn makeToken(self: *Lexer, kind: tokens.TokenKind, literal: []const u8) tokens.Token {
         return tokens.Token{
             .kind = kind,
             .literal = literal,
@@ -36,48 +41,119 @@ pub const Lexer = struct {
         };
     }
 
-    pub fn next_token(self: *Lexer) tokens.Token {
-        const c: u8 = self.advance() catch return self.make_token(tokens.TokenKind.EOF, "");
+    pub fn nextToken(self: *Lexer) !tokens.Token {
+        const c: u8 = self.advance() orelse return self.makeToken(tokens.TokenKind.EOF, "");
         switch (c) {
-            ' ', '\t' => return self.next_token(),
+            ' ', '\t' => return self.nextToken(),
             '\n' => {
                 self.line += 1;
-                return self.next_token();
+                return self.nextToken();
             },
 
-            '(' => return self.make_token(tokens.TokenKind.LeftParen, "("),
-            ')' => return self.make_token(tokens.TokenKind.RightParen, ")"),
-            '{' => return self.make_token(tokens.TokenKind.LeftBrace, "{"),
-            '}' => return self.make_token(tokens.TokenKind.RightBrace, "}"),
-            '[' => return self.make_token(tokens.TokenKind.LeftBracket, "["),
-            ']' => return self.make_token(tokens.TokenKind.RightBracket, "]"),
+            '(' => return self.makeToken(tokens.TokenKind.LeftParen, "("),
+            ')' => return self.makeToken(tokens.TokenKind.RightParen, ")"),
+            '{' => return self.makeToken(tokens.TokenKind.LeftBrace, "{"),
+            '}' => return self.makeToken(tokens.TokenKind.RightBrace, "}"),
+            '[' => return self.makeToken(tokens.TokenKind.LeftBracket, "["),
+            ']' => return self.makeToken(tokens.TokenKind.RightBracket, "]"),
 
-            ';' => return self.make_token(tokens.TokenKind.Semicolon, ";"),
-            '.' => return self.make_token(tokens.TokenKind.Dot, "."),
-            ',' => return self.make_token(tokens.TokenKind.Comma, ","),
-            '+' => return self.make_token(tokens.TokenKind.Plus, "+"),
-            '-' => return self.make_token(tokens.TokenKind.Minus, "-"),
-            '*' => return self.make_token(tokens.TokenKind.Asterisk, "*"),
-            '/' => if (self.peek() catch {
-                return self.make_token(tokens.TokenKind.FrontSlash, "/");
-            } == '/') {
-                self.pos += 1;
-                return self.make_token(tokens.TokenKind.FloorDivide, "//");
+            ';' => return self.makeToken(tokens.TokenKind.Semicolon, ";"),
+            '.' => return self.makeToken(tokens.TokenKind.Dot, "."),
+            ',' => return self.makeToken(tokens.TokenKind.Comma, ","),
+            '+' => return self.makeToken(tokens.TokenKind.Plus, "+"),
+            '-' => return self.makeToken(tokens.TokenKind.Minus, "-"),
+            '*' => return self.makeToken(tokens.TokenKind.Asterisk, "*"),
+            '!' => return self.makeToken(tokens.TokenKind.Not, "!"),
+            '~' => return self.makeToken(tokens.TokenKind.BitwiseNot, "~"),
+            '/' => if (self.peek() == '/') {
+                _ = self.advance();
+                return self.makeToken(tokens.TokenKind.FloorDivide, "//");
             } else {
-                return self.make_token(tokens.TokenKind.FrontSlash, "/");
+                return self.makeToken(tokens.TokenKind.FrontSlash, "/");
             },
-            '=' => if (self.peek() catch {
-                return self.make_token(tokens.TokenKind.Assign, "=");
-            } == '=') {
-                self.pos += 1;
-                return self.make_token(tokens.TokenKind.Equals, "==");
+            '=' => if (self.peek() == '=') {
+                _ = self.advance();
+                return self.makeToken(tokens.TokenKind.Equals, "==");
             } else {
-                return self.make_token(tokens.TokenKind.Assign, "=");
+                return self.makeToken(tokens.TokenKind.Assign, "=");
+            },
+            '<' => if (self.peek() == '=') {
+                _ = self.advance();
+                return self.makeToken(tokens.TokenKind.LessThanEqualTo, "<=");
+            } else if (self.peek() == '<') {
+                _ = self.advance();
+                return self.makeToken(tokens.TokenKind.BitwiseLeftShift, "<<");
+            } else {
+                return self.makeToken(tokens.TokenKind.LessThan, "<");
+            },
+            '>' => if (self.peek() == '=') {
+                _ = self.advance();
+                return self.makeToken(tokens.TokenKind.GreaterThanEqualTo, ">=");
+            } else if (self.peek() == '>') {
+                _ = self.advance();
+                return self.makeToken(tokens.TokenKind.BitwiseRightShift, ">>");
+            } else {
+                return self.makeToken(tokens.TokenKind.GreaterThan, ">");
+            },
+            '&' => if (self.peek() == '&') {
+                _ = self.advance();
+                return self.makeToken(tokens.TokenKind.And, "&&");
+            } else {
+                return self.makeToken(tokens.TokenKind.BitwiseAnd, "&");
+            },
+            '|' => if (self.peek() == '|') {
+                _ = self.advance();
+                return self.makeToken(tokens.TokenKind.Or, "||");
+            } else {
+                return self.makeToken(tokens.TokenKind.BitwiseOr, "|");
             },
 
-            else => unreachable,
+            else => |val| {
+                if (std.ascii.isAlphabetic(val) or val == '_') {
+                    return self.makeToken(tokens.TokenKind.Identifier, self.readIdentifier());
+                } else if (std.ascii.isDigit(val)) {
+                    return self.makeToken(tokens.TokenKind.Number, self.readNumber());
+                } else unreachable;
+            },
         }
 
         unreachable;
+    }
+
+    fn readIdentifier(self: *Lexer) []const u8 {
+        const pos = self.pos - 1;
+
+        var c = self.peek();
+        while (std.ascii.isAlphanumeric(c.?) or c.? == '_') {
+            _ = self.advance();
+
+            c = self.peek();
+            if (c == null) break;
+        }
+
+        return self.source[pos..self.pos];
+    }
+
+    fn readNumber(self: *Lexer) []const u8 {
+        const pos = self.pos - 1;
+        var hasDecimalPt = false;
+
+        var c = self.peek();
+        while (std.ascii.isDigit(c.?) or c.? == '.') {
+            if (c.? == '.') {
+                if (hasDecimalPt) {
+                    break;
+                } else {
+                    hasDecimalPt = true;
+                }
+            }
+
+            _ = self.advance();
+
+            c = self.peek();
+            if (c == null) break;
+        }
+
+        return self.source[pos..self.pos];
     }
 };
