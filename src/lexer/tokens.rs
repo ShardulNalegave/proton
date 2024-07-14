@@ -7,7 +7,7 @@ pub struct Token {
   pub filename: String,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TokenKind {
   EOF,
   Invalid,
@@ -38,6 +38,7 @@ pub enum TokenKind {
   RightBracket, // ]
 
   Semicolon, // ;
+  Colon, // :
   Dot, // .
   Comma, // ,
   Plus, // +
@@ -51,6 +52,7 @@ pub enum TokenKind {
   LessThanEqualTo, // <=
   GreaterThan, // >
   GreaterThanEqualTo, // >=
+  FatArrow, // =>
 
   And, // &&
   Or, // ||

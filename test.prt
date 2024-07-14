@@ -1,0 +1,43 @@
+
+let name = "Shardul";
+let mut age = 19;
+
+const greet = (): void => {
+  print("Hello, ${name}");
+};
+
+const index = () => Scaffold(
+  child: Center(
+    child: Text("Hello, World!"),
+  ),
+);
+
+const AppState = struct {
+  score: uint,
+  incrementScore: (&mut self) => {
+    self.score += 1;
+  },
+};
+
+const Status = enum {
+  Pending,
+  InProgress,
+  Done,
+};
+
+const Animal = interface {
+  speak: () => void,
+};
+
+const Dog = struct {
+  // skdnfjgf
+};
+
+impl Animal for Dog {
+  speak: () => print("Bark!"),
+}
+
+const Option = enum<T> {
+  Some(T),
+  None,
+};

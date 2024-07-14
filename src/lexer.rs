@@ -49,6 +49,7 @@ impl Lexer {
         '[' => self.make_token(TokenKind::LeftBracket, '['.to_string()),
         ']' => self.make_token(TokenKind::RightBracket, ']'.to_string()),
         ';' => self.make_token(TokenKind::Semicolon, ';'.to_string()),
+        ':' => self.make_token(TokenKind::Colon, ';'.to_string()),
         '.' => self.make_token(TokenKind::Dot, '.'.to_string()),
         ',' => self.make_token(TokenKind::Comma, ','.to_string()),
         '+' => self.make_token(TokenKind::Plus, '+'.to_string()),
@@ -57,8 +58,112 @@ impl Lexer {
         '!' => self.make_token(TokenKind::Not, '!'.to_string()),
         '~' => self.make_token(TokenKind::BitwiseNot, '!'.to_string()),
 
-        c => self.make_token(TokenKind::Invalid, c.to_string()),
+        '/' => match self.peek() {
+          Some('/') => {
+            self.advance();
+            self.make_token(TokenKind::FloorDivide, "//".to_string())
+          },
+          _ => self.make_token(TokenKind::FrontSlash, '/'.to_string()),
+        },
+
+        '=' => match self.peek() {
+          Some('=') => {
+            self.advance();
+            self.make_token(TokenKind::Equals, "==".to_string())
+          },
+          Some('>') => {
+            self.advance();
+            self.make_token(TokenKind::FatArrow, "=>".to_string())
+          },
+          _ => self.make_token(TokenKind::Assign, '='.to_string()),
+        },
+
+        '&' => match self.peek() {
+          Some('&') => {
+            self.advance();
+            self.make_token(TokenKind::And, "&&".to_string())
+          },
+          _ => self.make_token(TokenKind::BitwiseAnd, '&'.to_string()),
+        },
+
+        '|' => match self.peek() {
+          Some('|') => {
+            self.advance();
+            self.make_token(TokenKind::Or, "||".to_string())
+          },
+          _ => self.make_token(TokenKind::BitwiseOr, '|'.to_string()),
+        },
+
+        '<' => match self.peek() {
+          Some('<') => {
+            self.advance();
+            self.make_token(TokenKind::BitwiseLeftShift, "<<".to_string())
+          },
+          Some('=') => {
+            self.advance();
+            self.make_token(TokenKind::LessThanEqualTo, "<=".to_string())
+          },
+          _ => self.make_token(TokenKind::LessThan, '<'.to_string()),
+        },
+
+        '>' => match self.peek() {
+          Some('>') => {
+            self.advance();
+            self.make_token(TokenKind::BitwiseRightShift, ">>".to_string())
+          },
+          Some('=') => {
+            self.advance();
+            self.make_token(TokenKind::GreaterThanEqualTo, ">=".to_string())
+          },
+          _ => self.make_token(TokenKind::GreaterThan, '>'.to_string()),
+        },
+
+        c => if c.is_alphabetic() || c == '_' {
+          match self.read_identifier() {
+            ident => self.make_token(TokenKind::Identifier, ident)
+          }
+        } else if c.is_numeric() {
+          let num = self.read_number();
+          self.make_token(TokenKind::Number, num)
+        } else {
+          self.make_token(TokenKind::Invalid, c.to_string())
+        },
       },
     }
+  }
+
+  fn read_identifier(&mut self) -> String {
+    let pos = self.pos - 1;
+    while let Some(c) = self.peek() {
+      if !c.is_alphanumeric() && c != '_' {
+        break;
+      }
+      self.advance();
+    }
+
+    self.source[pos..self.pos].to_string()
+  }
+
+  fn read_number(&mut self) -> String {
+    let pos = self.pos - 1;
+    let mut has_decimal = false;
+
+    while let Some(c) = self.peek() {
+      if !c.is_numeric() && c != '_' && c != '.' {
+        break;
+      }
+
+      if c == '.' {
+        if has_decimal {
+          break;
+        } else {
+          has_decimal = true;
+        }
+      }
+
+      self.advance();
+    }
+
+    self.source[pos..self.pos].to_string()
   }
 }
