@@ -1,9 +1,9 @@
 
 let name = "Shardul";
-let mut age = 19;
+let age = 19_u8;
 
-const greet = (): void => {
-  print("Hello, ${name}");
+const greet = (): str => {
+  "Hello, ${name}"
 };
 
 const index = () => Scaffold(

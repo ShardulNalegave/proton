@@ -1,6 +1,6 @@
 
 pub mod tokens;
-use tokens::{Token, TokenKind};
+use tokens::{Keyword, Token, TokenKind};
 
 pub struct Lexer {
   pub source: String,
@@ -28,13 +28,13 @@ impl Lexer {
     self.source.chars().nth(pos)
   }
 
-  pub fn make_token(&self, kind: TokenKind, literal: String) -> Token {
-    Token { kind, literal, line: self.line, filename: self.filename.clone() }
+  pub fn make_token(&self, kind: TokenKind) -> Token {
+    Token { kind, line: self.line, filename: self.filename.clone() }
   }
 
   pub fn next_token(&mut self) -> Token {
     match self.advance() {
-      None => self.make_token(TokenKind::EOF, "".to_string()),
+      None => self.make_token(TokenKind::EOF),
       Some(c) => match c {
         ' ' | '\t' => self.next_token(),
         '\n' => {
@@ -42,91 +42,131 @@ impl Lexer {
           self.next_token()
         },
 
-        '(' => self.make_token(TokenKind::LeftParen, '('.to_string()),
-        ')' => self.make_token(TokenKind::RightParen, ')'.to_string()),
-        '{' => self.make_token(TokenKind::LeftBrace, '{'.to_string()),
-        '}' => self.make_token(TokenKind::RightBrace, '}'.to_string()),
-        '[' => self.make_token(TokenKind::LeftBracket, '['.to_string()),
-        ']' => self.make_token(TokenKind::RightBracket, ']'.to_string()),
-        ';' => self.make_token(TokenKind::Semicolon, ';'.to_string()),
-        ':' => self.make_token(TokenKind::Colon, ';'.to_string()),
-        '.' => self.make_token(TokenKind::Dot, '.'.to_string()),
-        ',' => self.make_token(TokenKind::Comma, ','.to_string()),
-        '+' => self.make_token(TokenKind::Plus, '+'.to_string()),
-        '-' => self.make_token(TokenKind::Minus, '-'.to_string()),
-        '*' => self.make_token(TokenKind::Asterisk, '*'.to_string()),
-        '!' => self.make_token(TokenKind::Not, '!'.to_string()),
-        '~' => self.make_token(TokenKind::BitwiseNot, '!'.to_string()),
+        '(' => self.make_token(TokenKind::LeftParen),
+        ')' => self.make_token(TokenKind::RightParen),
+        '{' => self.make_token(TokenKind::LeftBrace),
+        '}' => self.make_token(TokenKind::RightBrace),
+        '[' => self.make_token(TokenKind::LeftBracket),
+        ']' => self.make_token(TokenKind::RightBracket),
+        ';' => self.make_token(TokenKind::Semicolon),
+        ':' => self.make_token(TokenKind::Colon),
+        '.' => self.make_token(TokenKind::Dot),
+        ',' => self.make_token(TokenKind::Comma),
+        '!' => self.make_token(TokenKind::Not),
+        '~' => self.make_token(TokenKind::BitwiseNot),
+
+        '+' => match self.peek() {
+          Some('=') => {
+            self.advance();
+            self.make_token(TokenKind::AddAssign)
+          },
+          _ => self.make_token(TokenKind::Plus),
+        },
+
+        '-' => match self.peek() {
+          Some('=') => {
+            self.advance();
+            self.make_token(TokenKind::SubAssign)
+          },
+          _ => self.make_token(TokenKind::Minus),
+        },
+
+        '*' => match self.peek() {
+          Some('=') => {
+            self.advance();
+            self.make_token(TokenKind::MulAssign)
+          },
+          _ => self.make_token(TokenKind::Asterisk),
+        },
 
         '/' => match self.peek() {
           Some('/') => {
             self.advance();
-            self.make_token(TokenKind::FloorDivide, "//".to_string())
+            unimplemented!()
           },
-          _ => self.make_token(TokenKind::FrontSlash, '/'.to_string()),
+          Some('=') => {
+            self.advance();
+            self.make_token(TokenKind::DivAssign)
+          }
+          _ => self.make_token(TokenKind::FrontSlash),
         },
 
         '=' => match self.peek() {
           Some('=') => {
             self.advance();
-            self.make_token(TokenKind::Equals, "==".to_string())
+            self.make_token(TokenKind::Equals)
           },
           Some('>') => {
             self.advance();
-            self.make_token(TokenKind::FatArrow, "=>".to_string())
+            self.make_token(TokenKind::FatArrow)
           },
-          _ => self.make_token(TokenKind::Assign, '='.to_string()),
+          _ => self.make_token(TokenKind::Assign),
         },
 
         '&' => match self.peek() {
           Some('&') => {
             self.advance();
-            self.make_token(TokenKind::And, "&&".to_string())
+            self.make_token(TokenKind::And)
           },
-          _ => self.make_token(TokenKind::BitwiseAnd, '&'.to_string()),
+          Some('=') => {
+            self.advance();
+            self.make_token(TokenKind::BitwiseAndAssign)
+          },
+          _ => self.make_token(TokenKind::BitwiseAnd),
         },
 
         '|' => match self.peek() {
           Some('|') => {
             self.advance();
-            self.make_token(TokenKind::Or, "||".to_string())
+            self.make_token(TokenKind::Or)
           },
-          _ => self.make_token(TokenKind::BitwiseOr, '|'.to_string()),
+          Some('=') => {
+            self.advance();
+            self.make_token(TokenKind::BitwiseOrAssign)
+          },
+          _ => self.make_token(TokenKind::BitwiseOr),
         },
 
         '<' => match self.peek() {
           Some('<') => {
             self.advance();
-            self.make_token(TokenKind::BitwiseLeftShift, "<<".to_string())
+            self.make_token(TokenKind::BitwiseLeftShift)
           },
           Some('=') => {
             self.advance();
-            self.make_token(TokenKind::LessThanEqualTo, "<=".to_string())
+            self.make_token(TokenKind::LessThanEqualTo)
           },
-          _ => self.make_token(TokenKind::LessThan, '<'.to_string()),
+          _ => self.make_token(TokenKind::LessThan),
         },
 
         '>' => match self.peek() {
           Some('>') => {
             self.advance();
-            self.make_token(TokenKind::BitwiseRightShift, ">>".to_string())
+            self.make_token(TokenKind::BitwiseRightShift)
           },
           Some('=') => {
             self.advance();
-            self.make_token(TokenKind::GreaterThanEqualTo, ">=".to_string())
+            self.make_token(TokenKind::GreaterThanEqualTo)
           },
-          _ => self.make_token(TokenKind::GreaterThan, '>'.to_string()),
+          _ => self.make_token(TokenKind::GreaterThan),
+        },
+
+        '\'' => {
+          let c = self.read_char();
+          self.make_token(TokenKind::Character(c))
         },
 
         c => if c.is_alphabetic() || c == '_' {
-          match self.read_identifier() {
-            ident => self.make_token(TokenKind::Identifier, ident)
+          let ident = self.read_identifier();
+          match Keyword::from_str(&ident) {
+            Some(kw) => self.make_token(TokenKind::Keyword(kw)),
+            None => self.make_token(TokenKind::Identifier(ident))
           }
         } else if c.is_numeric() {
-          let num = self.read_number();
-          self.make_token(TokenKind::Number, num)
+          let (literal, suffix) = self.read_number();
+          self.make_token(TokenKind::Number { literal, suffix })
         } else {
-          self.make_token(TokenKind::Invalid, c.to_string())
+          self.make_token(TokenKind::Invalid(c))
         },
       },
     }
@@ -141,10 +181,13 @@ impl Lexer {
       self.advance();
     }
 
-    self.source[pos..self.pos].to_string()
+    match &self.source[pos..self.pos] {
+
+      ident => ident.to_string(),
+    }
   }
 
-  fn read_number(&mut self) -> String {
+  fn read_number(&mut self) -> (String, Option<String>) {
     let pos = self.pos - 1;
     let mut has_decimal = false;
 
@@ -164,6 +207,33 @@ impl Lexer {
       self.advance();
     }
 
-    self.source[pos..self.pos].to_string()
+    if let Some(c) = self.peek() {
+      if c.is_alphabetic() {
+        self.advance();
+        let suffix = self.read_identifier();
+        (self.source[pos..self.pos].to_string(), Some(suffix))
+      } else {
+        (self.source[pos..self.pos].to_string(), None)
+      }
+    } else {
+      (self.source[pos..self.pos].to_string(), None)
+    }
+  }
+
+  fn read_char(&mut self) -> char {
+    match self.peek() {
+      None | Some('\'') => panic!("Expected a char"),
+      Some(c) => {
+        self.advance();
+        match self.peek() {
+          None => panic!("char quotes not closed"),
+          Some('\'') => {
+            self.advance();
+            c
+          },
+          Some(_) => panic!("char cannot contain multiple characters: {}", c),
+        }
+      },
+    }
   }
 }
