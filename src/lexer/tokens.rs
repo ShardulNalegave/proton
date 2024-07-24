@@ -40,10 +40,10 @@ pub enum TokenKind {
   GreaterThanEqualTo, // >=
   FatArrow, // =>
 
+  Ampersand, // &
   And, // &&
   Or, // ||
   Not, // !
-  BitwiseAnd, // &
   BitwiseOr, // |
   BitwiseNot, // ~
   BitwiseLeftShift, // <<
@@ -60,7 +60,7 @@ pub enum TokenKind {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Keyword {
   Let,
-  Const,
+  Mut,
 
   Fn,
   Return,
@@ -72,6 +72,7 @@ pub enum Keyword {
   While,
   For,
 
+  Void,
   Enum,
   Struct,
   Interface,
@@ -102,7 +103,7 @@ impl Keyword {
   pub fn from_str(val: &str) -> Option<Self> {
     Some(match val {
       "let" => Self::Let,
-      "const" => Self::Const,
+      "mut" => Self::Mut,
       "fn" => Self::Fn,
       "return" => Self::Return,
       "if" => Self::If,
@@ -110,8 +111,9 @@ impl Keyword {
       "match" => Self::Match,
       "while" => Self::While,
       "for" => Self::For,
+      "void" => Self::Void,
       "enum" => Self::Enum,
-      "struct" => Self::Enum,
+      "struct" => Self::Struct,
       "interface" => Self::Interface,
       "impl" => Self::Impl,
       "as" => Self::As,

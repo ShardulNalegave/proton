@@ -1,6 +1,26 @@
 
 pub mod tokens;
+
+// ===== Imports =====
+use anyhow::Result;
 use tokens::{Keyword, Token, TokenKind};
+// ===================
+
+#[derive(Error, Debug)]
+pub enum LexerError {
+  #[error("Expected a character but found <EOF>")]
+  UnexpectedEOF,
+  #[error("Escape sequence '\\{0}' is not valid.")]
+  InvalidEscapeSequence(char),
+  #[error("'char' data-type cannot contain multiple characters")]
+  MultipleCharactersInChar,
+  #[error("'str' quotes were not closed")]
+  StringNotClosed,
+  #[error("'char' quotes were not closed")]
+  CharNotClosed,
+  #[error("Empty 'char' literal")]
+  EmptyChar,
+}
 
 pub struct Lexer {
   pub source: String,
@@ -13,7 +33,7 @@ impl Lexer {
   pub fn new(source: String, filename: String) -> Self {
     Self {
       source, filename,
-      line: 0,
+      line: 1,
       pos: 0,
     }
   }
@@ -28,18 +48,18 @@ impl Lexer {
     self.source.chars().nth(pos)
   }
 
-  pub fn make_token(&self, kind: TokenKind) -> Token {
+  pub fn make_token(&mut self, kind: TokenKind) -> Token {
     Token { kind, line: self.line, filename: self.filename.clone() }
   }
 
-  pub fn next_token(&mut self) -> Token {
-    match self.advance() {
+  pub fn next_token(&mut self) -> Result<Token, LexerError> {
+    Ok(match self.advance() {
       None => self.make_token(TokenKind::EOF),
       Some(c) => match c {
-        ' ' | '\t' => self.next_token(),
+        ' ' | '\t' => self.next_token()?,
         '\n' => {
           self.line += 1;
-          self.next_token()
+          self.next_token()?
         },
 
         '(' => self.make_token(TokenKind::LeftParen),
@@ -82,7 +102,15 @@ impl Lexer {
         '/' => match self.peek() {
           Some('/') => {
             self.advance();
-            unimplemented!()
+            while let Some(c) = self.peek() {
+              self.advance();
+              if c == '\n' {
+                self.line += 1;
+                break;
+              }
+            }
+
+            self.next_token()?
           },
           Some('=') => {
             self.advance();
@@ -112,7 +140,7 @@ impl Lexer {
             self.advance();
             self.make_token(TokenKind::BitwiseAndAssign)
           },
-          _ => self.make_token(TokenKind::BitwiseAnd),
+          _ => self.make_token(TokenKind::Ampersand),
         },
 
         '|' => match self.peek() {
@@ -152,8 +180,13 @@ impl Lexer {
         },
 
         '\'' => {
-          let c = self.read_char();
+          let c = self.read_char()?;
           self.make_token(TokenKind::Character(c))
+        },
+
+        '"' => {
+          let s = self.read_string()?;
+          self.make_token(TokenKind::String(s))
         },
 
         c => if c.is_alphabetic() || c == '_' {
@@ -169,7 +202,7 @@ impl Lexer {
           self.make_token(TokenKind::Invalid(c))
         },
       },
-    }
+    })
   }
 
   fn read_identifier(&mut self) -> String {
@@ -220,18 +253,72 @@ impl Lexer {
     }
   }
 
-  fn read_char(&mut self) -> char {
+  fn read_escape_char(&mut self) -> Result<char, LexerError> {
+    self.advance();
     match self.peek() {
-      None | Some('\'') => panic!("Expected a char"),
+      None => return Err(LexerError::UnexpectedEOF),
       Some(c) => {
         self.advance();
-        match self.peek() {
-          None => panic!("char quotes not closed"),
-          Some('\'') => {
-            self.advance();
-            c
-          },
-          Some(_) => panic!("char cannot contain multiple characters: {}", c),
+        Ok(c)
+      },
+    }
+  }
+
+  fn read_string(&mut self) -> Result<String, LexerError> {
+    let mut s = String::new();
+    let mut terminated = false;
+    while let Some(c) = self.peek() {
+      match c {
+        '"' => {
+          self.advance();
+          terminated = true;
+          break;
+        },
+        '\\' => {
+          let c = self.read_escape_char()?;
+          s += "\\";
+          s.push(c);
+        },
+        c => {
+          self.advance();
+          s.push(c);
+        },
+      }
+    }
+
+    if self.peek().is_none() && !terminated {
+      return Err(LexerError::StringNotClosed);
+    }
+
+    Ok(s)
+  }
+
+  fn read_char(&mut self) -> Result<char, LexerError> {
+    match self.peek() {
+      None | Some('\'') => return Err(LexerError::EmptyChar),
+      Some(c) => match c {
+        '\\' => {
+          let c = self.read_escape_char()?;
+          match self.peek() {
+            None => return Err(LexerError::CharNotClosed),
+            Some('\'') => {
+              self.advance();
+              Ok(c)
+            },
+            Some(_) => return Err(LexerError::MultipleCharactersInChar),
+          }
+        },
+
+        c => {
+          self.advance();
+          match self.peek() {
+            None => return Err(LexerError::CharNotClosed),
+            Some('\'') => {
+              self.advance();
+              Ok(c)
+            },
+            Some(_) => return Err(LexerError::MultipleCharactersInChar),
+          }
         }
       },
     }
