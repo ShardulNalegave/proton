@@ -1,0 +1,27 @@
+
+let names = ["ABC", "XYZ"];
+let mut a: u8 = 50_000;
+a = 10;
+
+for name : names {
+  //
+}
+
+let greet = fn(name: str) void {
+  print("Hello, ${name}!");
+};
+
+let person = struct {
+  name: str,
+  age: u8,
+
+  sayHi: fn() {
+    print("Hello from ${self.name}");
+  },
+};
+
+let abc = interface {
+  name: str,
+  age: u8,
+  sayHi: fn() void,
+};
