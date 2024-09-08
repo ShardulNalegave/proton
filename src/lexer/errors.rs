@@ -1,7 +1,4 @@
 
-// ===== Imports =====
-// ===================
-
 #[derive(Error, Debug)]
 pub enum LexerError {
   #[error("Unexpected character encountered at line {line}")]

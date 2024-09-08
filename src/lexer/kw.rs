@@ -12,6 +12,7 @@ pub enum Keyword {
   Struct,
   Enum,
   Fn,
+  Return,
 
   Type,
   Void,
@@ -35,6 +36,7 @@ impl Keyword {
       "struct" => Keyword::Struct,
       "enum" => Keyword::Enum,
       "fn" => Keyword::Fn,
+      "return" => Keyword::Return,
       "type" => Keyword::Type,
       "void" => Keyword::Void,
       "str" => Keyword::Str,

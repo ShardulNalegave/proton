@@ -105,6 +105,11 @@ impl Lexer {
         '/' => if self.peek() == Some('=') {
           self.advance();
           self.make_token(TokenKind::DivEquals)
+        } else if self.peek() == Some('/') {
+          while self.peek() != Some('\n') {
+            self.advance();
+          }
+          return self.next_token();
         } else {
           self.make_token(TokenKind::Div)
         },
@@ -156,7 +161,7 @@ impl Lexer {
           self.make_token(TokenKind::String(s))
         },
 
-        c => if c.is_alphabetic() {
+        c => if c.is_alphabetic() || c == '_' {
           let ident = self.read_identifier();
           match Keyword::from_str(&ident) {
             Some(kw) => self.make_token(TokenKind::Keyword(kw)),

@@ -1,5 +1,6 @@
+// test.prt
 
-let names = ["ABC", "XYZ"];
+let names = ["ABC", "XYZ"]; // Declares a new variable names
 let mut a: u8 = 50_000;
 a = 10;
 
